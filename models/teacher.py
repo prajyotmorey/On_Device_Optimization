@@ -27,10 +27,10 @@ class TeacherCNN(nn.Module):
         x = torch.flatten(x,1)
         return self.classifier(x)
 
-# Test
-model = TeacherCNN()
-x = torch.randn(4,1,28,28)
-y = model(x)
-print("Input: ",x.shape)
-print("Output: ",y.shape)
-print("Parameters:", sum(p.numel() for p in model.parameters()))
+# # Test
+# model = TeacherCNN()
+# x = torch.randn(4,1,28,28)
+# y = model(x)
+# print("Input: ",x.shape)
+# print("Output: ",y.shape)
+# print("Parameters:", sum(p.numel() for p in model.parameters()))
