@@ -1,0 +1,33 @@
+seed: 42
+
+
+data: 
+     root: "./data"
+     num_workers: 2
+
+training:
+     batch_size: 128
+     epoch: 10
+     learning_rate: 0.001
+     weight_decay: 0.0001
+
+benchmark:
+     warmup_iteration: 50
+     benchmark_iteration: 200
+
+budget:
+     max_model_size_mb: null
+     max_latency_ms: 33.33
+     min_accuracy: null
+
+prunning:
+     target_sparsity: 0.8
+
+quantization:
+     weight_bits: 8
+     activation_bits: 8
+
+distillation:
+     temperature: 4.0
+     alpha: 0.5
+     
