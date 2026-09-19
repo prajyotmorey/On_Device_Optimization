@@ -4,6 +4,9 @@ from models.teacher import TeacherCNN
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters())
 
+def count_trainable_parameters(model):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
 def model_size(model):
     total_bytes = 0
     for parameter in model.parameters():
@@ -17,17 +20,11 @@ def model_size(model):
 
 def model_report(model):
     parameters = count_parameters(model)
+    trainable_parameters = count_trainable_parameters(model)
     size_mb = model_size(model)
 
     return {
         "parameters" : parameters,
+        "trainable_parameters" : trainable_parameters,
         "size_mb" : size_mb
     }
-
-
-#Test Code
-
-
-model = TeacherCNN()
-
-print(model_report(model))

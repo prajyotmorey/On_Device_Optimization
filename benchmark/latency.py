@@ -1,5 +1,6 @@
 import time
 import torch
+from models.teacher import TeacherCNN
 
 @torch.no_grad() #temporarily disable gradient calculation for inference
 
@@ -15,7 +16,7 @@ def benchmark_latency(model, input_tensor, device, warmup=50, num_iterations=200
     if device.type == 'cuda':
         torch.cuda.synchronize()  # Forces CPU to wait untill all kernal calls on the GPU have completed.
 
-    start = time.pref_counter()
+    start = time.perf_counter()
 
     for _ in range(num_iterations):
         _ = model(input_tensor)
@@ -27,6 +28,9 @@ def benchmark_latency(model, input_tensor, device, warmup=50, num_iterations=200
 
     avg_latency_ms = ((end - start) / num_iterations) * 1000  # Convert seconds to milliseconds
 
-    fps = 1000 / (end - start)  # Frames per second
+    fps = 1000 / avg_latency_ms  # Frames per second
 
     return avg_latency_ms, fps
+
+
+

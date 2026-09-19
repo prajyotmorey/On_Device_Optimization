@@ -44,6 +44,7 @@ def main():
         running_loss = 0.0
 
         for images, labels in train_loader:
+            print("Training on batch...")
             images = images.to(device)
             labels = labels.to(device)
 
@@ -57,13 +58,13 @@ def main():
 
             running_loss += loss.item()
 
-            accuracy = evaluate_accuracy(model,test_loader,device)
+        accuracy = evaluate_accuracy(model,test_loader,device)
 
-            print(
+        print(
                 f"Epoch [{epoch + 1}/{num_epochs}], Loss: {running_loss / len(train_loader):.4f}, Accuracy: {accuracy:.4f}"
             )
 
-            torch.save(model.state_dict(), "teacher_model.pth")
+    torch.save(model.state_dict(), "teacher_model.pth")
 
 if __name__ == "__main__":
     main()
