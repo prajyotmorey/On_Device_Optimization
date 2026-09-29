@@ -1,5 +1,5 @@
 import torch
-
+import torch.nn as nn
 def calculate_sparsity(model):
     total_params = 0
     zero_params = 0
@@ -19,4 +19,18 @@ def layerwise_sparsity(model):
         sparsity = zero_params / total_params if total_params > 0 else 0
         layerwise_sparsity_dict[name] = sparsity
     return layerwise_sparsity_dict
+
+def calculate_weight_sparsity(model):
+    total=0
+    zeros=0
+    for module in model.modules():
+        if isinstance(module,(nn.Conv2d, nn.Linear)):
+            weight = module.weight.detach()
+
+            total += weight.numel()
+            zeros += torch.sum(weight == 0).item()
+    return zeros / total
+
+
+
 
