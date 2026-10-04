@@ -39,7 +39,7 @@ if __name__ == "__main__":
         for key, value in results.items():
             print(f"{key}: {value}")
         
-        #update_results_csv(results)
+        update_results_csv(results)
 
 
  #Old Code for Only 50% Sparsity       

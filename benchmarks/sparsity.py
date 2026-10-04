@@ -23,7 +23,7 @@ def layerwise_sparsity(model):
         layerwise_sparsity_dict[name] = sparsity
     return layerwise_sparsity_dict
 
-def calculate_weight_sparsity(model):
+def calculate_weight_sparsity(model): # official prunning sparsity calculation----use thi afterword.
     total=0
     zeros=0
     for module in model.modules():

@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from models.teacher import TeacherCNN
 
 def get_prunable_modules(model):
     modules = []
@@ -15,6 +16,7 @@ def create_mask(model):
 
     for module in get_prunable_modules(model):
         masks[module] = torch.ones_like(module.weight)
+        #print(f"Mask created for module: {module.__class__.__name__}, shape: {masks[module].shape}")
 
     return masks
 
@@ -54,3 +56,15 @@ def apply_global_pruning(model, masks, target_sparsity):
             module.weight.mul_(new_mask)
 
     return masks, threshold
+
+def apply_mask(model, masks):
+    with torch.no_grad():
+        for module in get_prunable_modules(model):
+            module.weight.mul_(masks[module])
+
+
+
+# #Test 
+# model = TeacherCNN()
+# mask = create_mask(model)
+# print(mask)
