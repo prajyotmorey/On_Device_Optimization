@@ -4,12 +4,17 @@
 '''
 import torch
 
+
+        #################################################
+                  ##Per- Tensor Quantization##
+        #################################################
+
 def symmetric_quantize(tensor):
     max_val = tensor.abs().max()
-    scale = max_val / 127.0  # For int8, the range is -128 to 127
+    scale = max_val / 127.0  # For int8, the range is -127 to 127
 
     quantized_tensor = torch.round(tensor / scale)
-    quantized_tensor = torch.clamp(quantized_tensor, -128, 127).to(torch.int8)
+    quantized_tensor = torch.clamp(quantized_tensor, -127, 127).to(torch.int8)
     return quantized_tensor, scale
 
 def symmetric_dequantize(quantized_tensor, scale):
@@ -28,6 +33,40 @@ def calculate_SNR(original_tensor, reconstructed_tensor):
     noise_power = torch.mean((original_tensor - reconstructed_tensor) ** 2)
     snr = 10 * torch.log10(signal_power / noise_power)
     return snr
+
+
+
+        #################################################
+                  ##Per- Channel Quantization##
+        #################################################
+def per_channel_symmetric_quantize(tensor):
+    # Assuming tensor shape is (out_channels, in_channels, height, width) for Conv2D weights
+    out_channels = tensor.size(0)
+    quantized_tensor = torch.zeros_like(tensor, dtype=torch.int8)
+    scales = torch.zeros(out_channels)
+
+    for i in range(out_channels):
+        channel_weights = tensor[i]
+        max_val = channel_weights.abs().max()
+        scale = max_val / 127.0  # For int8
+        scales[i] = scale
+
+        quantized_channel = torch.round(channel_weights / scale)
+        quantized_channel = torch.clamp(quantized_channel, -127, 127).to(torch.int8)
+        quantized_tensor[i] = quantized_channel
+        #print("Quantized Channel {}: dtype: {}, range: ({}, {})".format(i, quantized_channel.dtype, quantized_channel.min().item(), quantized_channel.max().item()))
+    return quantized_tensor, scales 
+
+def per_channel_symmetric_dequantize(quantized_tensor, scales):
+    out_channels = quantized_tensor.size(0)
+    dequantized_tensor = torch.zeros_like(quantized_tensor, dtype=torch.float32)
+
+    for i in range(out_channels):
+        scale = scales[i]
+        dequantized_channel = quantized_tensor[i].float() * scale
+        dequantized_tensor[i] = dequantized_channel
+
+    return dequantized_tensor
 
 # ##Test code
 
