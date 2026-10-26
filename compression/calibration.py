@@ -1,0 +1,83 @@
+import torch
+import torch.nn as nn
+from models.teacher import TeacherCNN
+from training.dataloader import get_dataloaders
+
+class ActivationCalibrator:
+
+    def __init__(self):
+        self.min_values = {}
+        self.max_values = {}
+        self.handles = []
+
+    def hook_fn(self, name):
+
+        def hook(module, inputs, output):
+
+            current_min = output.detach().min().item()
+            current_max = output.detach().max().item()
+
+            if name not in self.min_values:
+
+                self.min_values[name] = current_min
+                self.max_values[name] = current_max
+
+            else:
+
+                self.min_values[name] = min(
+                    self.min_values[name],
+                    current_min
+                )
+
+                self.max_values[name] = max(
+                    self.max_values[name],
+                    current_max
+                )
+
+        return hook
+
+    def register_hooks(self, model):
+
+        for name, module in model.named_modules():
+
+            if isinstance(module,(nn.Conv2d, nn.Linear)):
+
+                handle = module.register_forward_hook(self.hook_fn(name))
+
+                self.handles.append(handle)
+
+    def remove_hooks(self):
+        for handle in self.handles:
+            handle.remove()
+        
+        self.handles = []
+
+#Test Code
+model = TeacherCNN()
+train_loader, test_loader = get_dataloaders(batch_size=128)
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model.eval()
+
+calibrator = ActivationCalibrator()
+
+calibrator.register_hooks(model)
+
+with torch.no_grad():
+
+    for inputs, labels in train_loader:
+
+        inputs = inputs.to(device)
+
+        model(inputs)
+
+calibrator.remove_hooks()
+
+for name in calibrator.min_values:
+
+    print(
+        name,
+        "min =",
+        calibrator.min_values[name],
+        "max =",
+        calibrator.max_values[name]
+    )
