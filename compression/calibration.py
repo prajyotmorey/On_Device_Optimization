@@ -3,17 +3,21 @@ import torch.nn as nn
 from models.teacher import TeacherCNN
 from training.dataloader import get_dataloaders
 
+from compression.quantization import calibrated_symmetric_quantize, calibrated_symmetric_dequantize, quantization_error, calculate_SNR
+
+
 class ActivationCalibrator:
 
     def __init__(self):
+        self.activations = {}
         self.min_values = {}
         self.max_values = {}
         self.handles = []
-
+        
     def hook_fn(self, name):
 
         def hook(module, inputs, output):
-
+            self.activations[name] = output.detach().clone()
             current_min = output.detach().min().item()
             current_max = output.detach().max().item()
 
@@ -53,31 +57,62 @@ class ActivationCalibrator:
         self.handles = []
 
 #Test Code
-model = TeacherCNN()
-train_loader, test_loader = get_dataloaders(batch_size=128)
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model.eval()
+if __name__ == "__main__":
+    model = TeacherCNN()
+    train_loader, test_loader = get_dataloaders(batch_size=128)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.eval()
 
-calibrator = ActivationCalibrator()
+    calibrator = ActivationCalibrator()
 
-calibrator.register_hooks(model)
+    calibrator.register_hooks(model)
 
-with torch.no_grad():
+    with torch.no_grad():
 
-    for inputs, labels in train_loader:
+        for inputs, labels in train_loader:
+            inputs = inputs.to(device)
+            model(inputs)
 
-        inputs = inputs.to(device)
+    calibrator.remove_hooks()
 
-        model(inputs)
+    calibration_ranges={}
+    for name in calibrator.min_values:
+        calibration_ranges[name] = (calibrator.min_values[name], calibrator.max_values[name])
 
-calibrator.remove_hooks()
+        print(
+                name,
+                "min =",
+                calibrator.min_values[name],
+                "max =",
+                calibrator.max_values[name]
+            )
 
-for name in calibrator.min_values:
+        #Collect and Calculate Scales
+        scales = {}
 
-    print(
-        name,
-        "min =",
-        calibrator.min_values[name],
-        "max =",
-        calibrator.max_values[name]
-    )
+    for name, (min_val, max_val) in calibration_ranges.items():
+        alpha = max(abs(min_val), abs(max_val))
+        scales[name] = max(alpha / 127.0, 1e-8)
+        print(f"{name}: scale={scales[name]:.8f}")
+
+    activation_0 = calibrator.activations['features.0']
+    scale = scales['features.0']
+    ##Quantization
+    quantized_activation = calibrated_symmetric_quantize(activation_0,scale)
+    reconstructed_activation = calibrated_symmetric_dequantize(quantized_activation,scale)
+
+    quantization_error_mse, quantization_error_mae = quantization_error(activation_0, reconstructed_activation)
+    quantization_snr = calculate_SNR(activation_0,reconstructed_activation)
+
+    print("*"*100)
+    print("Quantization Of Layer_1: ")
+    print("Original Activation dtype: ", activation_0.dtype)
+    print("Quantized dtype: ",quantized_activation.dtype)
+    print("MSE: ",quantization_error_mse)
+    print("MAE: ",quantization_error_mae)
+    print("SNR: ",quantization_snr,"dB")
+
+
+
+
+    

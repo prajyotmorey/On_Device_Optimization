@@ -68,14 +68,44 @@ def per_channel_symmetric_dequantize(quantized_tensor, scales):
 
     return dequantized_tensor
 
+
+        #################################################
+                  ## Activation Calibration ##
+        #################################################
+
+
+
+def calibrated_symmetric_quantize(tensor, scale):
+    scale = torch.as_tensor(
+        scale,
+        dtype=tensor.dtype,
+        device=tensor.device
+    )
+
+    quantized = torch.round(tensor / scale)
+    quantized = torch.clamp(quantized, -127, 127)
+
+    return quantized.to(torch.int8)
+
+
+def calibrated_symmetric_dequantize(quantized, scale):
+    scale = torch.as_tensor(
+        scale,
+        dtype=torch.float32,
+        device=quantized.device
+    )
+
+    return quantized.float() * scale
+
+
+
+
+
+
+
+
+
 # ##Test code
-
-
-
-
-
-
-
 # if __name__ == "__main__":
 #     x =  torch.tensor([-0.8,-0.5,0.0,0.3,0.8])
 #     quantized_tensor, scale = symmetric_quantize(x)
