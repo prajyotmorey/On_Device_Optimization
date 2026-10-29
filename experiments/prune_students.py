@@ -6,8 +6,8 @@ from compression.masking import apply_global_pruning, create_mask, apply_mask
 from compression.cubic_sparsity import cubic_sparsity_schedule
 from benchmarks.accuracy import evaluate_accuracy
 
-# TARGET_SPARSITY = 0.3
-# EPOCHS = 10
+TARGET_SPARSITY = 0.3
+EPOCHS = 100
 # LR = 1e-4
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -21,10 +21,10 @@ optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 criterion = torch.nn.CrossEntropyLoss()
 train_loader, test_loader = get_dataloaders()
 
-for epoch in range(10):
-    if epoch < 7: # Prunning phase, only till 70% sparsity
-            
-        target_sparsity = cubic_sparsity_schedule(epoch, 6, 0.70)
+for epoch in range(EPOCHS):
+    if epoch < 3: # Prunning phase, only till 70% sparsity
+        step = TARGET_SPARSITY * 10 - 1    
+        target_sparsity = cubic_sparsity_schedule(epoch, step, TARGET_SPARSITY)
 
         mask, threshold = apply_global_pruning(model, mask, target_sparsity)
 
@@ -43,6 +43,6 @@ for epoch in range(10):
         running_loss += loss.item()
         apply_mask(model, mask)
     accuracy = evaluate_accuracy(model,test_loader,device)
-    print(f"Epoch [{epoch + 1}/10], Loss: {running_loss / len(train_loader):.4f}, Accuracy: {accuracy:.4f}")
+    print(f"Epoch [{epoch + 1}/{EPOCHS}], Loss: {running_loss / len(train_loader):.4f}, Accuracy: {accuracy:.4f}")
         
 torch.save(model.state_dict(), "saved_model/pruned_finetuned_student_distilled.pth")
